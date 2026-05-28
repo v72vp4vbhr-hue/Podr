@@ -12,77 +12,41 @@
     <meta name="apple-mobile-web-app-title" content="Прорезы">
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body {
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
+            height: 100%; width: 100%; overflow: hidden;
             background: #2c2c2c;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             -webkit-tap-highlight-color: transparent;
-            -webkit-user-select: none;
-            user-select: none;
+            -webkit-user-select: none; user-select: none;
         }
-
         .scroll-container {
-            height: 100%;
-            width: 100%;
+            height: 100%; width: 100%;
             overflow-y: scroll;
             -webkit-overflow-scrolling: touch;
             padding: 16px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            display: flex; justify-content: center; align-items: flex-start;
         }
-
         .app {
-            background: #3a3a3a;
-            border-radius: 12px;
-            padding: 20px;
-            width: 100%;
-            max-width: 650px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            margin-bottom: 40px;
+            background: #3a3a3a; border-radius: 12px; padding: 20px;
+            width: 100%; max-width: 650px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4); margin-bottom: 40px;
         }
-
-        h1 {
-            color: #e0e0e0;
-            text-align: center;
-            margin-bottom: 14px;
-            font-size: 20px;
-            font-weight: 500;
-        }
-
+        h1 { color: #e0e0e0; text-align: center; margin-bottom: 14px; font-size: 20px; font-weight: 500; }
         .settings {
-            background: #333;
-            border-radius: 8px;
-            padding: 10px 14px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
+            background: #333; border-radius: 8px; padding: 10px 14px;
+            margin-bottom: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
         }
         .settings label { color: #aaa; font-size: 13px; white-space: nowrap; }
         .settings input {
-            width: 70px; padding: 6px 8px;
-            background: #4a4a4a; border: 1px solid #555;
-            border-radius: 6px; color: #fff; font-size: 14px;
-            text-align: center; outline: none;
+            width: 70px; padding: 6px 8px; background: #4a4a4a; border: 1px solid #555;
+            border-radius: 6px; color: #fff; font-size: 14px; text-align: center; outline: none;
         }
-        .settings input:focus { border-color: #888; }
         .settings .fixed { color: #888; font-size: 13px; }
-
         .stock-panel {
-            background: #2a3a2a; border: 1px solid #3a5a3a;
-            border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 8px;
+            background: #2a3a2a; border: 1px solid #3a5a3a; border-radius: 8px;
+            padding: 10px 14px; margin-bottom: 12px;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
         }
         .stock-title { color: #8b8; font-size: 13px; font-weight: 600; }
         .stock-list { color: #ccc; font-size: 13px; flex: 1; min-width: 180px; }
@@ -90,72 +54,51 @@
             background: #833; color: #fcc; border: none;
             padding: 8px 14px; border-radius: 6px; font-size: 13px; cursor: pointer;
         }
-
         label { display: block; color: #b0b0b0; margin-bottom: 6px; font-size: 14px; }
         textarea {
-            width: 100%; height: 140px;
-            background: #4a4a4a; border: 1px solid #555; border-radius: 8px;
-            color: #fff; font-size: 14px; padding: 12px; outline: none; resize: vertical;
-            font-family: 'SF Mono', 'Menlo', 'Courier New', monospace; line-height: 1.6;
+            width: 100%; height: 140px; background: #4a4a4a; border: 1px solid #555;
+            border-radius: 8px; color: #fff; font-size: 14px; padding: 12px; outline: none;
+            resize: vertical; font-family: 'SF Mono', 'Menlo', 'Courier New', monospace; line-height: 1.6;
         }
-        textarea:focus { border-color: #888; }
         .hint { color: #888; font-size: 11px; margin-top: 4px; line-height: 1.4; }
-
         .btn-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
         .btn {
-            flex: 1; min-width: 80px; padding: 12px;
-            border: none; border-radius: 8px; font-size: 14px; font-weight: 500;
-            cursor: pointer;
+            flex: 1; min-width: 80px; padding: 12px; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: 500; cursor: pointer;
         }
         .btn-calculate { background: #5a8; color: #fff; }
         .btn-clear { background: #555; color: #ccc; }
         .btn-share { background: #48a; color: #fff; flex: 0.5; min-width: 60px; font-size: 18px; }
-
         .results { margin-top: 16px; display: none; }
         .results.show { display: block; }
-
-        .size-block {
-            background: #333; border-radius: 8px; padding: 12px 14px;
-            margin-bottom: 10px;
+        .reika-block {
+            background: #333; border: 1px solid #555; border-radius: 8px;
+            padding: 12px 14px; margin-bottom: 10px;
         }
-        .size-block .size-header {
-            color: #fff; font-size: 15px; font-weight: 600; margin-bottom: 4px;
+        .reika-block .reika-header {
+            color: #fa0; font-size: 14px; font-weight: 600; margin-bottom: 8px;
         }
-        .size-block .one-reika {
-            background: #2a2a2a;
-            border-radius: 6px;
-            padding: 8px 10px;
-            margin: 8px 0;
-            font-size: 12px;
-            color: #aaa;
-            line-height: 1.5;
+        .reika-item {
+            background: #2a2a2a; border-radius: 6px; padding: 8px 10px;
+            margin-bottom: 6px; font-size: 12px; color: #ccc; line-height: 1.5;
         }
-        .size-block .one-reika .highlight { color: #fa0; font-weight: 600; }
-        .size-block .one-reika .green { color: #5c5; }
-        .size-block .size-row {
-            display: flex; justify-content: space-between;
-            color: #ccc; font-size: 13px; padding: 2px 0;
-        }
-        .size-block .size-row .val { color: #5c5; font-weight: 600; }
-
+        .reika-item .green { color: #5c5; }
+        .reika-item .highlight { color: #fa0; font-weight: 600; }
+        .reika-item .cuts-needed { color: #fff; font-weight: 700; font-size: 14px; }
         .summary {
-            background: #444; border-radius: 8px; padding: 14px 16px;
-            margin-top: 12px;
+            background: #444; border-radius: 8px; padding: 14px 16px; margin-top: 12px;
         }
         .summary-row {
             display: flex; justify-content: space-between;
             padding: 3px 0; color: #ddd; font-size: 14px;
         }
         .summary-row .val { color: #fff; font-weight: 700; font-size: 16px; }
-
         .error { color: #e88; text-align: center; margin-top: 12px; display: none; font-size: 13px; }
         .error.show { display: block; }
-
         .used-stock-info {
             background: #2a3a2a; border-radius: 8px; padding: 8px 12px;
             margin-bottom: 12px; color: #8b8; font-size: 12px;
         }
-
         @supports (padding: env(safe-area-inset-top)) {
             .scroll-container {
                 padding-top: calc(16px + env(safe-area-inset-top));
@@ -209,12 +152,12 @@ function getReikaLength() {
 }
 
 function loadStock() {
-    const s = localStorage.getItem('pod_stock_v5');
+    const s = localStorage.getItem('pod_stock_v6');
     if (s) { try { stock = JSON.parse(s); } catch(e) { stock = {}; } }
     renderStock();
 }
 function saveStock() {
-    localStorage.setItem('pod_stock_v5', JSON.stringify(stock));
+    localStorage.setItem('pod_stock_v6', JSON.stringify(stock));
     renderStock();
 }
 function renderStock() {
@@ -229,11 +172,7 @@ function clearStock() {
 }
 function takeFromStock(len) {
     const k = String(len);
-    if (stock[k] && stock[k] > 0) {
-        stock[k]--;
-        saveStock();
-        return true;
-    }
+    if (stock[k] && stock[k] > 0) { stock[k]--; saveStock(); return true; }
     return false;
 }
 function addToStock(len) {
@@ -289,7 +228,6 @@ function calculate() {
     const input = document.getElementById('inputData').value.trim();
     const errDiv = document.getElementById('error');
     const resDiv = document.getElementById('results');
-    const scrollContainer = document.getElementById('scrollContainer');
     
     errDiv.classList.remove('show');
     resDiv.classList.remove('show');
@@ -372,59 +310,58 @@ function calculate() {
 
     let textResult = `📐 Расчёт прорезов\nДлина рейки: ${reikaLen} см | Загрузка: ${LOAD} шт.\n\n`;
 
-    const uniqueSizes = new Map();
-    for (const item of orderSummary) {
-        const key = `${item.width}x${item.height}`;
-        if (!uniqueSizes.has(key)) {
-            uniqueSizes.set(key, item);
-        }
-    }
+    // === НОВЫЙ БЛОК: Раскрой одной рейки + количество прорезов на размер ===
+    html += `<div class="reika-block">
+        <div class="reika-header">📋 Раскрой одной рейки (${reikaLen} см) и количество прорезов:</div>`;
 
-    html += `<div class="size-block" style="border: 1px solid #555;">
-        <div class="size-header" style="color:#fa0;">📋 Раскрой одной рейки (${reikaLen} см):</div>`;
-    
-    for (const [key, item] of uniqueSizes) {
+    for (const item of orderSummary) {
         const layout = oneReikaLayout(item.width, item.height, reikaLen);
-        html += `<div class="one-reika">
-            <b>${item.width}×${item.height}:</b> `;
-        if (layout.w > 0) {
-            html += `<span class="green">${layout.w} шт. по ${item.width} см</span>`;
-        }
+        
+        // Считаем, сколько нужно прорезов для этого размера
+        // Общее количество деталей этого размера в заказе
+        const totalPartsW = item.needW;
+        const totalPartsH = item.needH;
+        
+        // Сколько таких деталей помещается на одной рейке
+        const perReikaW = layout.w;
+        const perReikaH = layout.h;
+        
+        // Сколько реек нужно для ширины и высоты
+        const reikiForW = perReikaW > 0 ? Math.ceil(totalPartsW / perReikaW) : 0;
+        const reikiForH = perReikaH > 0 ? Math.ceil(totalPartsH / perReikaH) : 0;
+        
+        // Переводим в прорезы (загрузки по 26 реек)
+        const cutsForW = Math.ceil(reikiForW / LOAD);
+        const cutsForH = Math.ceil(reikiForH / LOAD);
+        const totalCutsForSize = cutsForW + cutsForH;
+
+        html += `<div class="reika-item">
+            <b>${item.width}×${item.height}</b> — ${item.quantity} шт.<br>
+            <span class="green">С 1 рейки: ${layout.w} шт. по ${item.width} см</span>`;
+        
         if (layout.w > 0 && layout.h > 0) html += ` + `;
+        
         if (layout.h > 0) {
             html += `<span class="green">${layout.h} шт. по ${item.height} см</span>`;
         }
-        html += ` &nbsp;→ остаток <span class="highlight">${layout.rest} см</span>`;
+        
+        html += ` → остаток <span class="highlight">${layout.rest} см</span><br>`;
+        html += `🔪 <span class="cuts-needed">Прорезов: ${totalCutsForSize} шт.</span>`;
+        
+        if (perReikaW > 0) {
+            html += ` (в ${item.width}: ${cutsForW} шт.)`;
+        }
+        if (perReikaH > 0) {
+            html += ` (в ${item.height}: ${cutsForH} шт.)`;
+        }
+        
         html += `</div>`;
-    }
-    html += `</div>`;
-
-    for (const item of orderSummary) {
-        const totalParts = item.needW + item.needH;
-        const partRatio = allParts.length > 0 ? totalParts / allParts.length : 0;
-        const approxCuts = Math.max(1, Math.round(totalCuts * partRatio));
-
-        html += `
-        <div class="size-block">
-            <div class="size-header">📏 ${item.width}×${item.height} — ${item.quantity} шт.</div>
-            <div class="size-row">
-                <span>Деталей ${item.width} см</span>
-                <span class="val">${item.needW} шт.</span>
-            </div>
-            <div class="size-row">
-                <span>Деталей ${item.height} см</span>
-                <span class="val">${item.needH} шт.</span>
-            </div>
-            <div class="size-row" style="border-top:1px solid #555; margin-top:4px; padding-top:4px;">
-                <span style="color:#aaa;">≈ доля прорезов</span>
-                <span class="val">${approxCuts} шт.</span>
-            </div>
-        </div>`;
 
         textResult += `${item.width}×${item.height} — ${item.quantity} шт.\n`;
-        textResult += `  Деталей ${item.width}: ${item.needW} шт.\n`;
-        textResult += `  Деталей ${item.height}: ${item.needH} шт.\n\n`;
+        textResult += `  С 1 рейки: ${layout.w}×${item.width} + ${layout.h}×${item.height}, остаток ${layout.rest} см\n`;
+        textResult += `  Прорезов: ${totalCutsForSize} шт.\n\n`;
     }
+    html += `</div>`;
 
     html += `
     <div class="summary">
@@ -475,9 +412,9 @@ function clearInput() {
 }
 
 document.getElementById('reikaLength').addEventListener('change', function() {
-    localStorage.setItem('reika_length_v5', this.value);
+    localStorage.setItem('reika_length_v6', this.value);
 });
-const savedLen = localStorage.getItem('reika_length_v5');
+const savedLen = localStorage.getItem('reika_length_v6');
 if (savedLen) document.getElementById('reikaLength').value = savedLen;
 
 loadStock();
