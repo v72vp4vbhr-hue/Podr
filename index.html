@@ -63,11 +63,9 @@
             background: #333; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;
         }
         .card-header { color: #fff; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-        .info-line {
-            font-size: 12px; color: #aaa; margin-bottom: 6px; line-height: 1.4;
-        }
-        .info-line .green { color: #5c5; }
-        .info-line .highlight { color: #fa0; }
+        .info-line { font-size: 12px; color: #aaa; margin-bottom: 6px; line-height: 1.5; }
+        .green { color: #5c5; }
+        .highlight { color: #fa0; }
         .cuts-row {
             display: flex; justify-content: space-between;
             padding: 2px 0; font-size: 13px; color: #ccc;
@@ -119,123 +117,122 @@
 </div>
 
 <script>
-const LOAD = 26;
-let lastResultText = '';
+var LOAD = 26;
+var lastResultText = '';
 
 function getReikaLength() {
-    const val = parseInt(document.getElementById('reikaLength').value);
+    var val = parseInt(document.getElementById('reikaLength').value);
     return (val > 0) ? val : 270;
 }
 
 function parseInput(text) {
-    const lines = text.split('\n').filter(l => l.trim());
-    const items = [];
-    for (const l of lines) {
-        const m = l.match(/(\d+)\s*[xх×]\s*(\d+)\s*[-—–]\s*(\d+)/i);
+    var lines = text.split('\n').filter(function(l) { return l.trim() !== ''; });
+    var items = [];
+    for (var i = 0; i < lines.length; i++) {
+        var l = lines[i];
+        var m = l.match(/(\d+)\s*[xх×]\s*(\d+)\s*[-—–]\s*(\d+)/i);
         if (m) {
-            const w = parseInt(m[1]), h = parseInt(m[2]), q = parseInt(m[3]);
-            if (w>0 && h>0 && q>0) items.push({width:w, height:h, quantity:q});
+            var w = parseInt(m[1]), h = parseInt(m[2]), q = parseInt(m[3]);
+            if (w > 0 && h > 0 && q > 0) {
+                items.push({width: w, height: h, quantity: q});
+            }
         }
     }
     return items;
 }
 
 function calculate() {
-    const input = document.getElementById('inputData').value.trim();
-    const errDiv = document.getElementById('error');
-    const resDiv = document.getElementById('results');
+    var input = document.getElementById('inputData').value.trim();
+    var errDiv = document.getElementById('error');
+    var resDiv = document.getElementById('results');
 
     errDiv.classList.remove('show');
     resDiv.classList.remove('show');
 
     if (!input) {
-        errDiv.textContent = 'Введите размеры'; errDiv.classList.add('show'); return;
+        errDiv.textContent = 'Введите размеры';
+        errDiv.classList.add('show');
+        return;
     }
 
-    const items = parseInput(input);
-    if (!items.length) {
-        errDiv.textContent = 'Неверный формат. Пример: 40x50 — 100'; errDiv.classList.add('show'); return;
+    var items = parseInput(input);
+    if (items.length === 0) {
+        errDiv.textContent = 'Неверный формат. Пример: 40x50 — 100';
+        errDiv.classList.add('show');
+        return;
     }
 
-    const reikaLen = getReikaLength();
-    let html = '';
-    let textResult = `📐 Расчёт прорезов\nДлина рейки: ${reikaLen} см | Загрузка: ${LOAD} шт.\n\n`;
-    let totalAllCuts = 0;
+    var reikaLen = getReikaLength();
+    var html = '';
+    var textResult = '📐 Расчёт прорезов\nДлина рейки: ' + reikaLen + ' см | Загрузка: ' + LOAD + ' шт.\n\n';
+    var totalAllCuts = 0;
 
-    for (const item of items) {
-        const needW = item.quantity * 2;
-        const needH = item.quantity * 2;
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var needW = item.quantity * 2;
+        var needH = item.quantity * 2;
 
-        // Сколько деталей влезает на 1 рейку
-        const perW = Math.floor(reikaLen / item.width);
-        const perH = Math.floor(reikaLen / item.height);
-        const restW = reikaLen - perW * item.width;
-        const restH = reikaLen - perH * item.height;
+        var perW = Math.floor(reikaLen / item.width);
+        var perH = Math.floor(reikaLen / item.height);
+        var restW = reikaLen - perW * item.width;
+        var restH = reikaLen - perH * item.height;
 
-        // Сколько реек нужно
-        const reikiW = Math.ceil(needW / perW);
-        const reikiH = Math.ceil(needH / perH);
+        var reikiW = Math.ceil(needW / perW);
+        var reikiH = Math.ceil(needH / perH);
 
-        // Сколько прорезов
-        const cutsW = Math.ceil(reikiW / LOAD);
-        const cutsH = Math.ceil(reikiH / LOAD);
-        const totalCuts = cutsW + cutsH;
+        var cutsW = Math.ceil(reikiW / LOAD);
+        var cutsH = Math.ceil(reikiH / LOAD);
+        var totalCuts = cutsW + cutsH;
         totalAllCuts += totalCuts;
 
-        // Сколько всего будет произведено деталей
-        const producedW = reikiW * perW;
-        const producedH = reikiH * perH;
-        const extraW = producedW - needW;
-        const extraH = producedH - needH;
+        html += '<div class="size-card">' +
+            '<div class="card-header">📏 ' + item.width + '×' + item.height + ' — ' + item.quantity + ' шт.</div>' +
+            '<div class="info-line">' +
+            'С 1 рейки: <span class="green">' + perW + ' шт. по ' + item.width + ' см</span> (ост. <span class="highlight">' + restW + ' см</span>) | ' +
+            '<span class="green">' + perH + ' шт. по ' + item.height + ' см</span> (ост. <span class="highlight">' + restH + ' см</span>)<br>' +
+            'Нужно деталей: ' + item.width + 'см × ' + needW + ' | ' + item.height + 'см × ' + needH + '<br>' +
+            'Рейк: ' + reikiW + ' + ' + reikiH + ' = ' + (reikiW + reikiH) +
+            '</div>' +
+            '<div class="cuts-row"><span>🔪 Прорезов в ' + item.width + '</span><span class="val">' + cutsW + ' шт.</span></div>' +
+            '<div class="cuts-row"><span>🔪 Прорезов в ' + item.height + '</span><span class="val">' + cutsH + ' шт.</span></div>' +
+            '<div class="cuts-row" style="border-top:1px solid #555; padding-top:4px; margin-top:4px;">' +
+            '<span style="color:#fff;">Итого прорезов</span>' +
+            '<span class="val">' + totalCuts + ' шт.</span>' +
+            '</div></div>';
 
-        html += `
-        <div class="size-card">
-            <div class="card-header">📏 ${item.width}×${item.height} — ${item.quantity} шт.</div>
-            <div class="info-line">
-                📐 <span class="green">${perW} шт. по ${item.width} см</span> с рейки (ост. <span class="highlight">${restW} см</span>) &nbsp;|&nbsp;
-                📐 <span class="green">${perH} шт. по ${item.height} см</span> с рейки (ост. <span class="highlight">${restH} см</span>)<br>
-                📋 Нужно деталей: ${item.width}см × ${needW} | ${item.height}см × ${needH}<br>
-                📦 Рейк: ${reikiW} + ${reikiH} = ${reikiW + reikiH} &nbsp;|&nbsp;
-                ⚠ Лишних деталей: ${item.width}см × ${extraW} | ${item.height}см × ${extraH}
-            </div>
-            <div class="cuts-row"><span>🔪 Прорезов в ${item.width}</span><span class="val">${cutsW} шт.</span></div>
-            <div class="cuts-row"><span>🔪 Прорезов в ${item.height}</span><span class="val">${cutsH} шт.</span></div>
-            <div class="cuts-row" style="border-top:1px solid #555; padding-top:4px; margin-top:4px;">
-                <span style="color:#fff;">Итого прорезов</span>
-                <span class="val">${totalCuts} шт.</span>
-            </div>
-        </div>`;
-
-        textResult += `${item.width}×${item.height} — ${item.quantity} шт.\n`;
-        textResult += `  С рейки: ${perW}×${item.width} (ост.${restW}) + ${perH}×${item.height} (ост.${restH})\n`;
-        textResult += `  Рейк: ${reikiW} + ${reikiH}, Прорезов: ${cutsW} + ${cutsH} = ${totalCuts}\n\n`;
+        textResult += item.width + '×' + item.height + ' — ' + item.quantity + ' шт.\n';
+        textResult += '  С рейки: ' + perW + '×' + item.width + ' (ост.' + restW + ') + ' + perH + '×' + item.height + ' (ост.' + restH + ')\n';
+        textResult += '  Рейк: ' + reikiW + ' + ' + reikiH + ', Прорезов: ' + cutsW + ' + ' + cutsH + ' = ' + totalCuts + '\n\n';
     }
 
-    html += `
-    <div class="summary">
-        <div class="summary-row">
-            <span>🔪 Всего прорезов на заказ:</span>
-            <span class="val">${totalAllCuts} шт.</span>
-        </div>
-    </div>`;
+    html += '<div class="summary">' +
+        '<div class="summary-row">' +
+        '<span>🔪 Всего прорезов на заказ:</span>' +
+        '<span class="val">' + totalAllCuts + ' шт.</span>' +
+        '</div></div>';
 
-    textResult += `🔪 Всего прорезов: ${totalAllCuts} шт.`;
+    textResult += '🔪 Всего прорезов: ' + totalAllCuts + ' шт.';
 
     resDiv.innerHTML = html;
     resDiv.classList.add('show');
     lastResultText = textResult;
 
-    setTimeout(() => {
+    setTimeout(function() {
         resDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 200);
 }
 
 function shareResult() {
-    if (!lastResultText) { alert('Сначала нажмите «Рассчитать»); return; }
+    if (!lastResultText) {
+        alert('Сначала нажмите «Рассчитать»');
+        return;
+    }
     if (navigator.share) {
-        navigator.share({ text: lastResultText }).catch(() => {});
+        navigator.share({ text: lastResultText }).catch(function() {});
     } else {
-        navigator.clipboard.writeText(lastResultText).then(() => alert('Скопировано!'));
+        navigator.clipboard.writeText(lastResultText).then(function() {
+            alert('Скопировано!');
+        });
     }
 }
 
@@ -245,12 +242,6 @@ function clearInput() {
     document.getElementById('error').classList.remove('show');
     lastResultText = '';
 }
-
-document.getElementById('reikaLength').addEventListener('change', function() {
-    localStorage.setItem('rl_v11', this.value);
-});
-const sv = localStorage.getItem('rl_v11');
-if (sv) document.getElementById('reikaLength').value = sv;
 </script>
 </body>
 </html>
