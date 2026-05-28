@@ -18,6 +18,8 @@
             -webkit-tap-highlight-color: transparent;
             -webkit-user-select: none;
             user-select: none;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -26,7 +28,7 @@
             min-height: -webkit-fill-available;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             padding: 16px;
         }
         .app {
@@ -36,6 +38,7 @@
             width: 100%;
             max-width: 650px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            margin-bottom: 40px;
         }
         h1 {
             color: #e0e0e0;
@@ -184,12 +187,12 @@ function getReikaLength() {
 }
 
 function loadStock() {
-    const s = localStorage.getItem('pod_stock_v3');
+    const s = localStorage.getItem('pod_stock_v4');
     if (s) { try { stock = JSON.parse(s); } catch(e) { stock = {}; } }
     renderStock();
 }
 function saveStock() {
-    localStorage.setItem('pod_stock_v3', JSON.stringify(stock));
+    localStorage.setItem('pod_stock_v4', JSON.stringify(stock));
     renderStock();
 }
 function renderStock() {
@@ -221,9 +224,7 @@ function addToStock(len) {
     return false;
 }
 
-// Раскладка одной рейки для конкретной пары размеров
 function oneReikaLayout(w, h, reikaLen) {
-    // Жадно укладываем w и h, максимизируя заполнение
     let bestW = 0, bestH = 0, bestRest = reikaLen;
     
     const maxW = Math.floor(reikaLen / w);
@@ -231,11 +232,8 @@ function oneReikaLayout(w, h, reikaLen) {
         const restAfterW = reikaLen - nw * w;
         const nh = Math.floor(restAfterW / h);
         const rest = restAfterW - nh * h;
-        const total = nw + nh;
-        if (total > 0 && rest < bestRest) {
-            bestW = nw;
-            bestH = nh;
-            bestRest = rest;
+        if (nw + nh > 0 && rest < bestRest) {
+            bestW = nw; bestH = nh; bestRest = rest;
         }
     }
 
@@ -244,11 +242,8 @@ function oneReikaLayout(w, h, reikaLen) {
         const restAfterH = reikaLen - nh * h;
         const nw = Math.floor(restAfterH / w);
         const rest = restAfterH - nw * w;
-        const total = nw + nh;
-        if (total > 0 && rest < bestRest) {
-            bestW = nw;
-            bestH = nh;
-            bestRest = rest;
+        if (nw + nh > 0 && rest < bestRest) {
+            bestW = nw; bestH = nh; bestRest = rest;
         }
     }
 
@@ -353,7 +348,6 @@ function calculate() {
 
     let textResult = `📐 Расчёт прорезов\nДлина рейки: ${reikaLen} см | Загрузка: ${LOAD} шт.\n\n`;
 
-    // Уникальные размеры для справки
     const uniqueSizes = new Map();
     for (const item of orderSummary) {
         const key = `${item.width}x${item.height}`;
@@ -362,7 +356,6 @@ function calculate() {
         }
     }
 
-    // Блок справки по раскрою одной рейки
     html += `<div class="size-block" style="border: 1px solid #555;">
         <div class="size-header" style="color:#fa0;">📋 Раскрой одной рейки (${reikaLen} см):</div>`;
     
@@ -382,7 +375,6 @@ function calculate() {
     }
     html += `</div>`;
 
-    // Вывод по каждому размеру заказа
     for (const item of orderSummary) {
         const totalParts = item.needW + item.needH;
         const partRatio = allParts.length > 0 ? totalParts / allParts.length : 0;
@@ -429,6 +421,11 @@ function calculate() {
     resDiv.innerHTML = html;
     resDiv.classList.add('show');
     lastResultText = textResult;
+    
+    // Прокрутка к результатам
+    setTimeout(() => {
+        resDiv.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
 }
 
 function shareResult() {
@@ -455,9 +452,9 @@ function clearInput() {
 }
 
 document.getElementById('reikaLength').addEventListener('change', function() {
-    localStorage.setItem('reika_length_v3', this.value);
+    localStorage.setItem('reika_length_v4', this.value);
 });
-const savedLen = localStorage.getItem('reika_length_v3');
+const savedLen = localStorage.getItem('reika_length_v4');
 if (savedLen) document.getElementById('reikaLength').value = savedLen;
 
 loadStock();
