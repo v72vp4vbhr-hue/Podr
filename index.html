@@ -62,13 +62,14 @@
         .size-card {
             background: #333; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;
         }
-        .size-card .card-header { color: #fff; font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+        .card-header { color: #fff; font-size: 15px; font-weight: 600; margin-bottom: 6px; }
         .one-reika {
             background: #2a2a2a; border-radius: 6px; padding: 8px 10px;
             margin-bottom: 6px; font-size: 12px; color: #aaa; line-height: 1.5;
         }
         .green { color: #5c5; }
         .highlight { color: #fa0; font-weight: 600; }
+        .blue { color: #8af; }
         .cuts-row {
             display: flex; justify-content: space-between;
             padding: 3px 0; font-size: 13px; color: #ccc;
@@ -82,10 +83,6 @@
             padding: 3px 0; color: #ddd; font-size: 14px;
         }
         .summary-row .val { color: #fff; font-weight: 700; font-size: 16px; }
-        .reuse-info {
-            background: #2a3a2a; border-radius: 6px; padding: 6px 10px;
-            margin-bottom: 8px; font-size: 11px; color: #8b8;
-        }
         .error { color: #e88; text-align: center; margin-top: 12px; display: none; font-size: 13px; }
         .error.show { display: block; }
         @supports (padding: env(safe-area-inset-top)) {
@@ -109,6 +106,7 @@
 
         <label>Введите заказ:</label>
         <textarea id="inputData" placeholder="20x30 — 350
+30x40 — 200
 40x50 — 100"></textarea>
         <div class="hint">Формат: <b>Ширина x Высота — Количество подрамников</b></div>
 
@@ -169,94 +167,119 @@ function calculate() {
     }
 
     const reikaLen = getReikaLength();
+    const allSizes = new Set();
     
-    // Собираем все потребности в деталях
-    let needs = {}; // { размер: сколько нужно деталей }
+    // Собираем потребности: { размер: сколько деталей нужно }
+    let need = {};
     for (const item of items) {
-        needs[item.width] = (needs[item.width] || 0) + item.quantity * 2;
-        needs[item.height] = (needs[item.height] || 0) + item.quantity * 2;
+        need[item.width] = (need[item.width] || 0) + item.quantity * 2;
+        need[item.height] = (need[item.height] || 0) + item.quantity * 2;
+        allSizes.add(item.width);
+        allSizes.add(item.height);
     }
 
-    // Сортируем размеры по убыванию
-    const sizes = Object.keys(needs).map(Number).sort((a,b) => b - a);
+    const sizes = [...allSizes].sort((a,b) => b - a);
+    const reikaLenNum = reikaLen;
 
-    // Считаем рейки и прорезы, собираем остатки
-    let cutsBySize = {}; // { размер: количество прорезов }
-    let leftovers = {}; // { размер: количество штук } — остатки-детали
+    // Считаем рейки для каждого размера и собираем остатки
+    let reikiBySize = {};  // сколько реек нужно для размера
+    let restBySize = {};   // сколько остатков (штук деталей) дают рейки этого размера
+    let restLength = {};   // длина остатка для этого размера
 
     for (const size of sizes) {
-        let needed = needs[size] || 0;
-        
-        // Сначала используем остатки от других размеров
-        for (const [leftoverSize, count] of Object.entries(leftovers)) {
-            const ls = parseInt(leftoverSize);
-            if (ls === size && count > 0 && needed > 0) {
-                const use = Math.min(needed, count);
-                needed -= use;
-                leftovers[ls] -= use;
-                if (leftovers[ls] <= 0) delete leftovers[ls];
-            }
-        }
-
-        if (needed <= 0) {
-            cutsBySize[size] = 0;
+        const pr = perReika(size, reikaLenNum);
+        const needed = need[size] || 0;
+        if (pr.count === 0 || needed === 0) {
+            reikiBySize[size] = 0;
+            restBySize[size] = 0;
             continue;
         }
-
-        const pr = perReika(size, reikaLen);
-        if (pr.count === 0) {
-            cutsBySize[size] = 0;
-            continue;
-        }
-
         const reiki = Math.ceil(needed / pr.count);
-        const cuts = Math.ceil(reiki / LOAD);
-        cutsBySize[size] = cuts;
-
-        // Остаток: произведено минус нужно
+        reikiBySize[size] = reiki;
+        // Остаток: произведено - нужно
         const produced = reiki * pr.count;
         const extra = produced - needed;
-        
-        // Остаток рейки — это куски длиной pr.rest
-        // Из них можно сделать детали других размеров
-        if (pr.rest > 0) {
-            // Добавляем остатки как возможные детали
-            leftovers[pr.rest] = (leftovers[pr.rest] || 0) + reiki;
-        }
-        // Лишние произведённые детали этого размера
-        if (extra > 0) {
-            leftovers[size] = (leftovers[size] || 0) + extra;
+        restBySize[size] = extra;
+        restLength[size] = pr.rest;
+    }
+
+    // Теперь: остатки от реек одного размера можно использовать как детали другого размера
+    // Но остаток — это кусок длиной pr.rest. Из него можно сделать детали размером <= pr.rest
+    // Упрощаем: считаем, сколько деталей каждого размера можно сделать из остатков
+    let bonus = {}; // { размер: сколько бесплатных деталей из остатков }
+    for (const size of sizes) {
+        bonus[size] = 0;
+    }
+
+    // Остатки с реек размера size имеют длину restLength[size], их количество = reikiBySize[size] штук
+    for (const size of sizes) {
+        const rLen = restLength[size] || 0;
+        const rCount = reikiBySize[size] || 0;
+        if (rLen === 0 || rCount === 0) continue;
+
+        // Из каждого остатка можно сделать детали других размеров
+        for (const otherSize of sizes) {
+            if (otherSize > rLen) continue;
+            const canFit = Math.floor(rLen / otherSize);
+            if (canFit > 0) {
+                bonus[otherSize] = (bonus[otherSize] || 0) + canFit * rCount;
+                break; // используем остаток для первого подходящего размера
+            }
         }
     }
 
-    // Теперь используем остатки для уменьшения прорезов
-    // Перебираем размеры и списываем остатки
+    // Теперь вычитаем бонусные детали из потребностей и пересчитываем прорезы
+    let finalNeed = {};
     for (const size of sizes) {
-        if (cutsBySize[size] === undefined) cutsBySize[size] = 0;
+        finalNeed[size] = Math.max(0, (need[size] || 0) - (bonus[size] || 0));
+    }
+
+    // Пересчитываем рейки и прорезы с учётом остатков
+    let finalReiki = {};
+    let finalCuts = {};
+    for (const size of sizes) {
+        const pr = perReika(size, reikaLenNum);
+        const needed = finalNeed[size] || 0;
+        if (pr.count === 0 || needed === 0) {
+            finalReiki[size] = 0;
+            finalCuts[size] = 0;
+            continue;
+        }
+        const reiki = Math.ceil(needed / pr.count);
+        finalReiki[size] = reiki;
+        finalCuts[size] = Math.ceil(reiki / LOAD);
     }
 
     // Вывод результатов
     let html = '';
     let textResult = `📐 Расчёт прорезов\nДлина рейки: ${reikaLen} см | Загрузка: ${LOAD} шт.\n\n`;
     let totalAllCuts = 0;
+    const shownSizes = {};
 
     for (const item of items) {
-        const cutsW = cutsBySize[item.width] || 0;
-        const cutsH = cutsBySize[item.height] || 0;
+        const cutsW = finalCuts[item.width] || 0;
+        const cutsH = finalCuts[item.height] || 0;
         const totalCuts = cutsW + cutsH;
         totalAllCuts += totalCuts;
 
-        const wPr = perReika(item.width, reikaLen);
-        const hPr = perReika(item.height, reikaLen);
+        const wPr = perReika(item.width, reikaLenNum);
+        const hPr = perReika(item.height, reikaLenNum);
+        const bonusW = bonus[item.width] || 0;
+        const bonusH = bonus[item.height] || 0;
 
         html += `
         <div class="size-card">
             <div class="card-header">📏 ${item.width}×${item.height} — ${item.quantity} шт.</div>
             <div class="one-reika">
-                С 1 рейки:
-                <span class="green">${wPr.count} шт. по ${item.width} см</span> (ост. <span class="highlight">${wPr.rest} см</span>) +
-                <span class="green">${hPr.count} шт. по ${item.height} см</span> (ост. <span class="highlight">${hPr.rest} см</span>)
-            </div>
+                С 1 рейки: <span class="green">${wPr.count}×${item.width}</span> (ост.${wPr.rest}см) + <span class="green">${hPr.count}×${item.height}</span> (ост.${hPr.rest}см)`;
+        if (bonusW > 0 || bonusH > 0) {
+            html += `<br><span class="blue">♻ Из остатков: `;
+            if (bonusW > 0) html += `${item.width}см × ${bonusW}`;
+            if (bonusW > 0 && bonusH > 0) html += `, `;
+            if (bonusH > 0) html += `${item.height}см × ${bonusH}`;
+            html += `</span>`;
+        }
+        html += `</div>
             <div class="cuts-row"><span>🔪 Прорезов в ${item.width}</span><span class="val">${cutsW} шт.</span></div>
             <div class="cuts-row"><span>🔪 Прорезов в ${item.height}</span><span class="val">${cutsH} шт.</span></div>
             <div class="cuts-row" style="border-top:1px solid #555; padding-top:4px; margin-top:4px;">
@@ -266,16 +289,9 @@ function calculate() {
         </div>`;
 
         textResult += `${item.width}×${item.height} — ${item.quantity} шт.\n`;
-        textResult += `  С 1 рейки: ${wPr.count}×${item.width} (ост.${wPr.rest}) + ${hPr.count}×${item.height} (ост.${hPr.rest})\n`;
-        textResult += `  Прорезов в ${item.width}: ${cutsW}, в ${item.height}: ${cutsH}, всего: ${totalCuts}\n\n`;
-    }
-
-    // Информация об остатках
-    const leftoverEntries = Object.entries(leftovers).filter(([_,q]) => q > 0);
-    if (leftoverEntries.length > 0) {
-        html += `<div class="reuse-info">♻ Остатки переиспользованы внутри заказа. Неиспользованный остаток: ` +
-            leftoverEntries.sort((a,b) => parseInt(a[0])-parseInt(b[0]))
-            .map(([l,q]) => `${l} см × ${q}`).join(', ') + `</div>`;
+        textResult += `  С 1 рейки: ${wPr.count}×${item.width} + ${hPr.count}×${item.height}\n`;
+        if (bonusW > 0 || bonusH > 0) textResult += `  Из остатков: ${item.width}×${bonusW}, ${item.height}×${bonusH}\n`;
+        textResult += `  Прорезов: ${cutsW} + ${cutsH} = ${totalCuts}\n\n`;
     }
 
     html += `
@@ -298,7 +314,7 @@ function calculate() {
 }
 
 function shareResult() {
-    if (!lastResultText) { alert('Сначала нажмите «Рассчитать»'); return; }
+    if (!lastResultText) { alert('Сначала нажмите «Рассчитать»); return; }
     if (navigator.share) {
         navigator.share({ text: lastResultText }).catch(() => {});
     } else {
@@ -314,9 +330,9 @@ function clearInput() {
 }
 
 document.getElementById('reikaLength').addEventListener('change', function() {
-    localStorage.setItem('reika_len_v9', this.value);
+    localStorage.setItem('reika_len_v10', this.value);
 });
-const sl = localStorage.getItem('reika_len_v9');
+const sl = localStorage.getItem('reika_len_v10');
 if (sl) document.getElementById('reikaLength').value = sl;
 </script>
 </body>
