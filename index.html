@@ -22,8 +22,7 @@
         }
         .scroll-container {
             height: 100%; width: 100%;
-            overflow-y: scroll;
-            -webkit-overflow-scrolling: touch;
+            overflow-y: scroll; -webkit-overflow-scrolling: touch;
             padding: 16px;
             display: flex; justify-content: center; align-items: flex-start;
         }
@@ -37,7 +36,7 @@
             background: #333; border-radius: 8px; padding: 10px 14px;
             margin-bottom: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
         }
-        .settings label { color: #aaa; font-size: 13px; white-space: nowrap; }
+        .settings label { color: #aaa; font-size: 13px; }
         .settings input {
             width: 70px; padding: 6px 8px; background: #4a4a4a; border: 1px solid #555;
             border-radius: 6px; color: #fff; font-size: 14px; text-align: center; outline: none;
@@ -71,20 +70,23 @@
         .btn-share { background: #48a; color: #fff; flex: 0.5; min-width: 60px; font-size: 18px; }
         .results { margin-top: 16px; display: none; }
         .results.show { display: block; }
-        .reika-block {
-            background: #333; border: 1px solid #555; border-radius: 8px;
-            padding: 12px 14px; margin-bottom: 10px;
+        .size-card {
+            background: #333; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;
         }
-        .reika-block .reika-header {
-            color: #fa0; font-size: 14px; font-weight: 600; margin-bottom: 8px;
+        .size-card .card-header {
+            color: #fff; font-size: 15px; font-weight: 600; margin-bottom: 6px;
         }
-        .reika-item {
+        .size-card .one-reika {
             background: #2a2a2a; border-radius: 6px; padding: 8px 10px;
-            margin-bottom: 6px; font-size: 12px; color: #ccc; line-height: 1.5;
+            margin-bottom: 6px; font-size: 12px; color: #aaa; line-height: 1.5;
         }
-        .reika-item .green { color: #5c5; }
-        .reika-item .highlight { color: #fa0; font-weight: 600; }
-        .reika-item .cuts-needed { color: #fff; font-weight: 700; font-size: 14px; }
+        .size-card .one-reika .green { color: #5c5; }
+        .size-card .one-reika .highlight { color: #fa0; font-weight: 600; }
+        .size-card .cuts-row {
+            display: flex; justify-content: space-between;
+            padding: 3px 0; font-size: 13px; color: #ccc;
+        }
+        .size-card .cuts-row .val { color: #5c5; font-weight: 600; font-size: 15px; }
         .summary {
             background: #444; border-radius: 8px; padding: 14px 16px; margin-top: 12px;
         }
@@ -108,7 +110,7 @@
     </style>
 </head>
 <body>
-<div class="scroll-container" id="scrollContainer">
+<div class="scroll-container">
     <div class="app">
         <h1>📐 Расчёт прорезов</h1>
 
@@ -152,12 +154,12 @@ function getReikaLength() {
 }
 
 function loadStock() {
-    const s = localStorage.getItem('pod_stock_v6');
+    const s = localStorage.getItem('pod_v7');
     if (s) { try { stock = JSON.parse(s); } catch(e) { stock = {}; } }
     renderStock();
 }
 function saveStock() {
-    localStorage.setItem('pod_stock_v6', JSON.stringify(stock));
+    localStorage.setItem('pod_v7', JSON.stringify(stock));
     renderStock();
 }
 function renderStock() {
@@ -180,35 +182,33 @@ function addToStock(len) {
         const k = String(len);
         stock[k] = (stock[k] || 0) + 1;
         saveStock();
-        return true;
     }
-    return false;
 }
 
-function oneReikaLayout(w, h, reikaLen) {
-    let bestW = 0, bestH = 0, bestRest = reikaLen;
-    
-    const maxW = Math.floor(reikaLen / w);
-    for (let nw = 0; nw <= maxW; nw++) {
-        const restAfterW = reikaLen - nw * w;
-        const nh = Math.floor(restAfterW / h);
-        const rest = restAfterW - nh * h;
-        if (nw + nh > 0 && rest < bestRest) {
-            bestW = nw; bestH = nh; bestRest = rest;
-        }
+// Раскрой одной рейки: максимум деталей
+function bestFit(w, h, reikaLen) {
+    let bw = 0, bh = 0, br = reikaLen;
+    for (let nw = 0; nw * w <= reikaLen; nw++) {
+        let rest = reikaLen - nw * w;
+        let nh = Math.floor(rest / h);
+        rest -= nh * h;
+        if (nw + nh > 0 && rest < br) { bw = nw; bh = nh; br = rest; }
     }
-
-    const maxH = Math.floor(reikaLen / h);
-    for (let nh = 0; nh <= maxH; nh++) {
-        const restAfterH = reikaLen - nh * h;
-        const nw = Math.floor(restAfterH / w);
-        const rest = restAfterH - nw * w;
-        if (nw + nh > 0 && rest < bestRest) {
-            bestW = nw; bestH = nh; bestRest = rest;
-        }
+    for (let nh = 0; nh * h <= reikaLen; nh++) {
+        let rest = reikaLen - nh * h;
+        let nw = Math.floor(rest / w);
+        rest -= nw * w;
+        if (nw + nh > 0 && rest < br) { bw = nw; bh = nh; br = rest; }
     }
+    return { w: bw, h: bh, rest: br };
+}
 
-    return { w: bestW, h: bestH, rest: bestRest };
+// Посчитать рейки и прорезы для партии одинаковых деталей
+function calcReikiAndCuts(totalParts, perReika) {
+    if (perReika === 0) return { reiki: 0, cuts: 0 };
+    const reiki = Math.ceil(totalParts / perReika);
+    const cuts = Math.ceil(reiki / LOAD);
+    return { reiki, cuts };
 }
 
 function parseInput(text) {
@@ -228,179 +228,126 @@ function calculate() {
     const input = document.getElementById('inputData').value.trim();
     const errDiv = document.getElementById('error');
     const resDiv = document.getElementById('results');
-    
+
     errDiv.classList.remove('show');
     resDiv.classList.remove('show');
 
     if (!input) {
-        errDiv.textContent = 'Введите размеры';
-        errDiv.classList.add('show');
-        return;
+        errDiv.textContent = 'Введите размеры'; errDiv.classList.add('show'); return;
     }
 
     const items = parseInput(input);
     if (!items.length) {
-        errDiv.textContent = 'Неверный формат. Пример: 40x50 — 100';
-        errDiv.classList.add('show');
-        return;
+        errDiv.textContent = 'Неверный формат. Пример: 40x50 — 100'; errDiv.classList.add('show'); return;
     }
 
     const reikaLen = getReikaLength();
+    let html = '';
+    let textResult = `📐 Расчёт прорезов\nДлина рейки: ${reikaLen} см | Загрузка: ${LOAD} шт.\n\n`;
+    let totalAllCuts = 0;
 
-    let allParts = [];
-    let orderSummary = [];
+    const usedFromStock = {};
 
     for (const item of items) {
         const needW = item.quantity * 2;
         const needH = item.quantity * 2;
-        orderSummary.push({
-            width: item.width,
-            height: item.height,
-            quantity: item.quantity,
-            needW: needW,
-            needH: needH
-        });
-        for (let i = 0; i < needW; i++) allParts.push(item.width);
-        for (let i = 0; i < needH; i++) allParts.push(item.height);
-    }
 
-    allParts.sort((a, b) => b - a);
+        // Раскладка одной рейки
+        const layout = bestFit(item.width, item.height, reikaLen);
 
-    let remaining = [];
-    let usedFromStock = {};
-    for (const part of allParts) {
-        if (takeFromStock(part)) {
-            usedFromStock[part] = (usedFromStock[part] || 0) + 1;
-        } else {
-            remaining.push(part);
+        // Сначала берём со склада
+        let remainingW = needW;
+        let remainingH = needH;
+        let fromStockW = 0, fromStockH = 0;
+
+        while (remainingW > 0 && takeFromStock(item.width)) {
+            remainingW--;
+            fromStockW++;
         }
-    }
-
-    let usedReiki = 0;
-    let freshStock = [];
-
-    while (remaining.length > 0) {
-        usedReiki++;
-        let space = reikaLen;
-        let newRemaining = [];
-        for (let i = 0; i < remaining.length; i++) {
-            if (remaining[i] <= space) {
-                space -= remaining[i];
-            } else {
-                newRemaining.push(remaining[i]);
-            }
+        while (remainingH > 0 && takeFromStock(item.height)) {
+            remainingH--;
+            fromStockH++;
         }
-        if (space > 0) freshStock.push(space);
-        remaining = newRemaining;
-    }
 
-    for (const rest of freshStock) {
-        addToStock(rest);
-    }
+        if (fromStockW > 0) usedFromStock[item.width] = (usedFromStock[item.width] || 0) + fromStockW;
+        if (fromStockH > 0) usedFromStock[item.height] = (usedFromStock[item.height] || 0) + fromStockH;
 
-    const totalCuts = Math.ceil(usedReiki / LOAD);
+        // Считаем, сколько реек и прорезов нужно для оставшегося
+        const wResult = calcReikiAndCuts(remainingW, layout.w);
+        const hResult = calcReikiAndCuts(remainingH, layout.h);
 
-    let html = '';
+        // Остатки от новых реек
+        if (layout.w > 0 && wResult.reiki > 0) {
+            const produced = wResult.reiki * layout.w;
+            const extra = produced - remainingW;
+            // Остаток от реек для ширины — это куски длины item.height? Нет.
+            // Упрощаем: остаток самой рейки уже учтён в layout.rest
+            for (let i = 0; i < wResult.reiki; i++) addToStock(layout.rest);
+        }
+        if (layout.h > 0 && hResult.reiki > 0) {
+            for (let i = 0; i < hResult.reiki; i++) addToStock(layout.rest);
+        }
 
-    const usedEntries = Object.entries(usedFromStock).sort((a,b) => parseInt(a[0]) - parseInt(b[0]));
-    if (usedEntries.length > 0) {
-        html += `<div class="used-stock-info">📦 Использовано со склада: ` +
-            usedEntries.map(([l,q]) => `${l} см × ${q}`).join(', ') + `</div>`;
-    }
+        const totalCuts = wResult.cuts + hResult.cuts;
+        totalAllCuts += totalCuts;
 
-    let textResult = `📐 Расчёт прорезов\nДлина рейки: ${reikaLen} см | Загрузка: ${LOAD} шт.\n\n`;
-
-    // === НОВЫЙ БЛОК: Раскрой одной рейки + количество прорезов на размер ===
-    html += `<div class="reika-block">
-        <div class="reika-header">📋 Раскрой одной рейки (${reikaLen} см) и количество прорезов:</div>`;
-
-    for (const item of orderSummary) {
-        const layout = oneReikaLayout(item.width, item.height, reikaLen);
-        
-        // Считаем, сколько нужно прорезов для этого размера
-        // Общее количество деталей этого размера в заказе
-        const totalPartsW = item.needW;
-        const totalPartsH = item.needH;
-        
-        // Сколько таких деталей помещается на одной рейке
-        const perReikaW = layout.w;
-        const perReikaH = layout.h;
-        
-        // Сколько реек нужно для ширины и высоты
-        const reikiForW = perReikaW > 0 ? Math.ceil(totalPartsW / perReikaW) : 0;
-        const reikiForH = perReikaH > 0 ? Math.ceil(totalPartsH / perReikaH) : 0;
-        
-        // Переводим в прорезы (загрузки по 26 реек)
-        const cutsForW = Math.ceil(reikiForW / LOAD);
-        const cutsForH = Math.ceil(reikiForH / LOAD);
-        const totalCutsForSize = cutsForW + cutsForH;
-
-        html += `<div class="reika-item">
-            <b>${item.width}×${item.height}</b> — ${item.quantity} шт.<br>
-            <span class="green">С 1 рейки: ${layout.w} шт. по ${item.width} см</span>`;
-        
+        html += `
+        <div class="size-card">
+            <div class="card-header">📏 ${item.width}×${item.height} — ${item.quantity} шт.</div>
+            <div class="one-reika">
+                С 1 рейки: `;
+        if (layout.w > 0) html += `<span class="green">${layout.w} шт. по ${item.width} см</span>`;
         if (layout.w > 0 && layout.h > 0) html += ` + `;
-        
-        if (layout.h > 0) {
-            html += `<span class="green">${layout.h} шт. по ${item.height} см</span>`;
+        if (layout.h > 0) html += `<span class="green">${layout.h} шт. по ${item.height} см</span>`;
+        html += ` → остаток <span class="highlight">${layout.rest} см</span>`;
+        if (fromStockW > 0 || fromStockH > 0) {
+            html += `<br><span style="color:#8b8;">📦 Со склада: `;
+            if (fromStockW > 0) html += `${item.width} см × ${fromStockW}`;
+            if (fromStockW > 0 && fromStockH > 0) html += `, `;
+            if (fromStockH > 0) html += `${item.height} см × ${fromStockH}`;
+            html += `</span>`;
         }
-        
-        html += ` → остаток <span class="highlight">${layout.rest} см</span><br>`;
-        html += `🔪 <span class="cuts-needed">Прорезов: ${totalCutsForSize} шт.</span>`;
-        
-        if (perReikaW > 0) {
-            html += ` (в ${item.width}: ${cutsForW} шт.)`;
-        }
-        if (perReikaH > 0) {
-            html += ` (в ${item.height}: ${cutsForH} шт.)`;
-        }
-        
-        html += `</div>`;
+        html += `</div>
+            <div class="cuts-row"><span>🔪 Прорезов в ${item.width}</span><span class="val">${wResult.cuts} шт.</span></div>
+            <div class="cuts-row"><span>🔪 Прорезов в ${item.height}</span><span class="val">${hResult.cuts} шт.</span></div>
+            <div class="cuts-row" style="border-top:1px solid #555; padding-top:4px; margin-top:4px;">
+                <span style="color:#fff;">Итого прорезов</span>
+                <span class="val">${totalCuts} шт.</span>
+            </div>
+        </div>`;
 
         textResult += `${item.width}×${item.height} — ${item.quantity} шт.\n`;
-        textResult += `  С 1 рейки: ${layout.w}×${item.width} + ${layout.h}×${item.height}, остаток ${layout.rest} см\n`;
-        textResult += `  Прорезов: ${totalCutsForSize} шт.\n\n`;
+        textResult += `  С 1 рейки: ${layout.w}×${item.width} + ${layout.h}×${item.height}, ост. ${layout.rest} см\n`;
+        textResult += `  Прорезов в ${item.width}: ${wResult.cuts}, в ${item.height}: ${hResult.cuts}, всего: ${totalCuts}\n\n`;
     }
-    html += `</div>`;
 
     html += `
     <div class="summary">
         <div class="summary-row">
             <span>🔪 Всего прорезов на заказ:</span>
-            <span class="val">${totalCuts} шт.</span>
-        </div>
-        <div class="summary-row" style="font-size:12px; color:#888; margin-top:4px;">
-            <span>Все детали оптимизированы вместе. Остатки переиспользованы.</span>
+            <span class="val">${totalAllCuts} шт.</span>
         </div>
     </div>`;
 
-    textResult += `🔪 Всего прорезов: ${totalCuts} шт.\n`;
-    textResult += `\n📦 Склад: ` + (Object.entries(stock).filter(([_,q]) => q > 0).length > 0 ?
-        Object.entries(stock).filter(([_,q]) => q > 0).sort((a,b) => parseInt(a[0])-parseInt(b[0])).map(([l,q]) => `${l} см × ${q}`).join(', ') :
-        'пусто');
+    textResult += `🔪 Всего прорезов: ${totalAllCuts} шт.\n`;
+    textResult += `📦 Склад: ` + (Object.entries(stock).filter(([_,q]) => q > 0).length > 0 ?
+        Object.entries(stock).filter(([_,q]) => q > 0).sort((a,b) => parseInt(a[0])-parseInt(b[0])).map(([l,q]) => `${l} см × ${q}`).join(', ') : 'пусто');
 
     resDiv.innerHTML = html;
     resDiv.classList.add('show');
     lastResultText = textResult;
-    
+
     setTimeout(() => {
         resDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 200);
 }
 
 function shareResult() {
-    if (!lastResultText) {
-        alert('Сначала нажмите «Рассчитать»');
-        return;
-    }
+    if (!lastResultText) { alert('Сначала нажмите «Рассчитать»'); return; }
     if (navigator.share) {
         navigator.share({ text: lastResultText }).catch(() => {});
     } else {
-        navigator.clipboard.writeText(lastResultText).then(() => {
-            alert('Результат скопирован!');
-        }).catch(() => {
-            alert('Не поддерживается.');
-        });
+        navigator.clipboard.writeText(lastResultText).then(() => alert('Скопировано!'));
     }
 }
 
@@ -412,10 +359,10 @@ function clearInput() {
 }
 
 document.getElementById('reikaLength').addEventListener('change', function() {
-    localStorage.setItem('reika_length_v6', this.value);
+    localStorage.setItem('reika_len_v7', this.value);
 });
-const savedLen = localStorage.getItem('reika_length_v6');
-if (savedLen) document.getElementById('reikaLength').value = savedLen;
+const sl = localStorage.getItem('reika_len_v7');
+if (sl) document.getElementById('reikaLength').value = sl;
 
 loadStock();
 </script>
